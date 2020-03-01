@@ -2,6 +2,7 @@ const Store = require('../util/Store');
 
 module.exports = {
     'ready': (client, d) => {
+        client.readyAt = Date.now();
         client.user = d.d.user;
         client.sessionId = d.d.session_id;
 

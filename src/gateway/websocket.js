@@ -15,7 +15,7 @@ module.exports = async (client) => {
         const d = JSON.parse(incoming) || incoming;
 
         switch(d.op) {
-            case 10:
+            case 10: {
                 client.ws.gateway.heartbeat = {
                     interval: d.d.heartbeat_interval,
                     last: null,
@@ -24,39 +24,31 @@ module.exports = async (client) => {
 
                 require('./heartbeat')(client);
 
-                socket.send(JSON.stringify({
-                    op: 2,
-                    d: {
-                        token: client.token,
-                        properties: {
-                            $os: process.platform,
-                            $browser: 'nodecord',
-                            $device: 'nodecord',
-                        },
-                        compress: false,
-                        large_threshold: 250,
-                        presence: {
-                            status: 'online',
-                            afk: false,
-                        }
-                    }
-                }));
+                let payload;
+                if (client.sessionId && client.sequenceNumber) {
+                    payload = require('./payloads/Identify')(client);
+                } else {
+                    payload = require('./payloads/Resume')(client);
+                }
+                socket.send(JSON.stringify(payload));
                 break;
-
-            case 11:
+            }
+                
+            case 11: {
                 client.ws.gateway.heartbeat.last = Date.now();
                 client.ws.gateway.heartbeat.recieved = true;
                 break;
-
-            case 0:
+            }
+            
+            case 0: {
+                client.sequenceNumber = d.s;
                 const Events = require('../util/GatewayEvents');
                 if (!Events.hasOwnProperty(d.t)) return;
 
-                if (d.t == 'READY') client.readyAt = Date.now();
-                
                 const e = require('./EventsHandler')[Events[d.t]];
                 if (e) e(client, d);
                 break;
+            } 
         }
     });
 }
